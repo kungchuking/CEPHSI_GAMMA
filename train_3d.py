@@ -4,9 +4,17 @@ from video_denoise import video_denoise_3d
 import loss
 import matplotlib.pyplot as plt
 from skimage.metrics import peak_signal_noise_ratio as psnr
+from time import localtime, struct_time, time
 from tqdm import tqdm
 import os
 import cv2
+
+def get_date_time_string() -> None:
+    x = localtime(time())
+    return(
+            f"{x.tm_year}-{x.tm_mon:02}-{x.tm_mday:02} "
+            + f"{x.tm_hour:02}:{x.tm_min:02}:{x.tm_sec:02}"
+    )
 
 if __name__ == "__main__":
     # -- Essential directories (Create them if they don't already exist)
@@ -72,7 +80,10 @@ if __name__ == "__main__":
     #     print ("{}: {}".format(param_tensor, model.state_dict()[param_tensor].size()))
     # quit()
     
+    print (f"[INFO] start training: {get_date_time_string()}")
+    print (f"[INFO] start training: {get_date_time_string()}", file=fd)
     for epoch in range(n_epoch):
+        epoch_start_time = time()
         print ("[INFO] ---- Epoch {} ----".format(epoch), file=fd)
     
         model.train()
@@ -202,6 +213,7 @@ if __name__ == "__main__":
             valid_psnr = run_psnr_avg / float(i+1)
             print ("[INFO] Validation Set PSNR: {};".format(valid_psnr), file=fd)
     
+        print (f"[INFO] Epoch Time: {time() - epoch_start_time:.2f}s;", file=fd)
         fd.flush()
     
         # -- Save some output images for inspection once every n_img iterations
@@ -216,3 +228,6 @@ if __name__ == "__main__":
             train_psnr_o = train_psnr
             valid_psnr_o = valid_psnr
             torch.save(model.state_dict(), "./checkpoints/epoch_{}_valid_psnr_{}_train_psnr_{}.pth".format(epoch, valid_psnr, train_psnr))
+
+    print (f"[INFO] finished training: {get_date_time_string()}")
+    print (f"[INFO] finished training: {get_date_time_string()}", file=fd)

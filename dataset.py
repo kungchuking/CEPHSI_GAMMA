@@ -10,6 +10,8 @@ DEBUG = False
 class dataset(Dataset):
     def __init__(self, ds_dir, n_subframe, patch_size=[512, 512]):
         dir_ls = sorted(os.listdir(ds_dir))
+        dir_ls = [d for d in dir_ls if os.path.isdir(os.path.join(ds_dir, d))]
+
         print ("[INFO] Loading dataset from directories: ", dir_ls)
         self.subexp_ls = []
         self.patch_size = patch_size
