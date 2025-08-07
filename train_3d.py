@@ -1,6 +1,6 @@
 import torch
 from dataset import dataset
-from video_denoise import video_denoise
+from video_denoise import video_denoise_3d
 import loss
 import matplotlib.pyplot as plt
 from skimage.metrics import peak_signal_noise_ratio as psnr
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     valid_psnr = 0.
     
     # -- The Model
-    model = video_denoise().to(device)
+    model = video_denoise_3d().to(device)
     
     params = {
             "batch_size": 2,
@@ -84,7 +84,7 @@ if __name__ == "__main__":
         # -- Training loop
         for i, data in tqdm(enumerate(train_gen)):
             # -- data ~ (N, T, H, W)
-            # data = data.unsqueeze(1) # -- (N, 1, T, H, W)
+            data = data.unsqueeze(1) # -- (N, 1, T, H, W)
 
             # -- data = data.to(device).float() / 255.
             # -- min max norm
@@ -170,7 +170,7 @@ if __name__ == "__main__":
         with torch.set_grad_enabled(False):
             for i, data in tqdm(enumerate(test_gen)):
                 # -- data ~ (N, T, H, W)
-                # -- data = data.unsqueeze(1) # -- (N, 1, T, H, W)
+                data = data.unsqueeze(1) # -- (N, 1, T, H, W)
 
                 # -- data = data.to(device).float() / 255.
                 # -- min max norm
