@@ -12,19 +12,28 @@ import cv2
 def get_date_time_string() -> None:
     x = localtime(time())
     return(
-            f"{x.tm_year}-{x.tm_mon:02}-{x.tm_mday:02} "
-            + f"{x.tm_hour:02}:{x.tm_min:02}:{x.tm_sec:02}"
+            f"{x.tm_year}.{x.tm_mon:02}.{x.tm_mday:02}_"
+            + f"{x.tm_hour:02}.{x.tm_min:02}.{x.tm_sec:02}"
     )
 
 if __name__ == "__main__":
+    start_time = get_date_time_string()
+
     # -- Essential directories (Create them if they don't already exist)
-    ess_dirs = ["./results/", "./checkpoints/"]
+    ess_dirs = [f"./{start_time}/results/", f"./{start_time}/checkpoints/"]
     
     for d in ess_dirs:
         if not os.path.exists(d):
             os.makedirs(d)
     
-    fd = open("train.log", "w")
+    sigma_input = int(input('sigma (default=15/25/50): '))
+    lr_input = float(input('lr (default=0.01): '))
+    gamma_input = float(input('gamma (default=0.5): '))
+
+    fd = open(f"./{start_time}/train.log", "w")
+    log_message = input('log message: ')
+    print(f"[INFO] log message: {log_message}", file=fd)
+    print(f"[INFO] sigma={sigma_input} lr={lr_input} gamma={gamma_input}", file=fd)
     
     # -- Loss Functions
     TVLoss = loss.TVLoss()
@@ -36,12 +45,12 @@ if __name__ == "__main__":
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     torch.backends.cudnn.benchmark = True
     
-    n_rpt      = 1000       # -- Number of iterations before reporting the loss, PSNR, and other metrics 
+    n_rpt      = 100        # -- Number of iterations before reporting the loss, PSNR, and other metrics 
     n_epoch    = 5000       # -- Total number of epochs
-    n_img      = 100        # -- Number of epochs before saving images for inspection
-    patch_size = [512, 512]
+    n_img      = 50        # -- Number of epochs before saving images for inspection
+    patch_size = [480, 640]
     n_subexp   = 16         # -- Number of subexposure per frame
-    sigma      = 15
+    sigma      = sigma_input
     
     # -- SOme metrics to help evaluate the performance of the model.
     # -- The PSNRs of the last epoch
@@ -63,25 +72,27 @@ if __name__ == "__main__":
     train_set = dataset(ds_dir="./dataset/train/", n_subframe=n_subexp, patch_size=patch_size)
     train_gen = torch.utils.data.DataLoader(train_set, **params)
     
-    print ("[INFO] len(train_set): ", len(train_set))
-    print ("[INFO] len(train_set): ", len(train_set), file=fd)
+    print ("[INFO] len(train_set):", len(train_set))
+    print ("[INFO] len(train_set):", len(train_set), file=fd)
     
     test_set = dataset(ds_dir="./dataset/test/", n_subframe=n_subexp, patch_size=patch_size)
     test_gen = torch.utils.data.DataLoader(test_set, **params)
     
-    print ("[INFO] len(test_set): ", len(test_set))
-    print ("[INFO] len(test_set): ", len(test_set), file=fd)
+    print ("[INFO] len(test_set):", len(test_set))
+    print ("[INFO] len(test_set):", len(test_set), file=fd)
     
     # -- optimizer = torch.optim.SGD(model.parameters(), lr=1e-5, momentum=0.9)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.08)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr_input)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=gamma_input)
     
     # for param_tensor in model.state_dict():
     #     print ("{}: {}".format(param_tensor, model.state_dict()[param_tensor].size()))
     # quit()
     
-    print (f"[INFO] start training: {get_date_time_string()}")
-    print (f"[INFO] start training: {get_date_time_string()}", file=fd)
+    print (f"[INFO] start training: {start_time}")
+    print (f"[INFO] start training: {start_time}", file=fd)
+    fd.flush()
+
     for epoch in range(n_epoch):
         epoch_start_time = time()
         print ("[INFO] ---- Epoch {} ----".format(epoch), file=fd)
@@ -160,10 +171,12 @@ if __name__ == "__main__":
     
         # -- Save some output images for inspectin once every n_img iterations
         if epoch % n_img == 0 and epoch != 0:
-            for n in range(output.shape[1]):
-                # -- plt.imshow(output[0, n, ...].detach().cpu().numpy(), cmap="gray")
-                plt.imshow((output[0, n, ...].detach().cpu().numpy() + 1.) / 2., cmap="gray")
-                plt.savefig("./results/train_epoch_{}_n_{}.png".format(epoch, n))
+            os.makedirs(f"./{start_time}/results/train_epoch_{epoch}/")
+            for n in range(output.shape[0]):
+                # plt.imshow((output[n].detach().cpu().numpy() + 1.) / 2., cmap="gray")
+                # plt.savefig("./results/train_epoch_{}_n_{}.png".format(epoch, n))
+                output_img = (output[n].detach().cpu().numpy() + 1.) / 2. * 255
+                cv2.imwrite(f"./{start_time}/results/train_epoch_{epoch}/train_epoch_{epoch}_n_{n}.png", output_img)
     
         """
         print ("[INFO] ce_blur.shape: ", ce_blur.shape)
@@ -218,16 +231,18 @@ if __name__ == "__main__":
     
         # -- Save some output images for inspection once every n_img iterations
         if epoch % n_img == 0 and epoch != 0:
+            os.makedirs(f"./{start_time}/results/valid_epoch_{epoch}/")
             for n in range(output.shape[1]):
-                # -- plt.imshow(output[0, n, ...].detach().cpu().numpy(), cmap="gray")
-                plt.imshow((output[0, n, ...].detach().cpu().numpy() + 1.) / 2., cmap="gray")
-                plt.savefig("./results/valid_epoch_{}_n_{}.png".format(epoch, n))
+                # plt.imshow((output[0, n, ...].detach().cpu().numpy() + 1.) / 2., cmap="gray")
+                # plt.savefig("./results/valid_epoch_{}_n_{}.png".format(epoch, n))
+                output_img = (output[0, n, ...].detach().cpu().numpy() + 1.) / 2. * 255
+                cv2.imwrite(f"./{start_time}/results/valid_epoch_{epoch}/valid_epoch_{epoch}_n_{n}.png", output_img)
     
         # -- Save the parameters as checkpoints if they yield higher PSNRs than those of previous epochs.
         if train_psnr > train_psnr_o and valid_psnr > valid_psnr_o:
             train_psnr_o = train_psnr
             valid_psnr_o = valid_psnr
-            torch.save(model.state_dict(), "./checkpoints/epoch_{}_valid_psnr_{}_train_psnr_{}.pth".format(epoch, valid_psnr, train_psnr))
+            torch.save(model.state_dict(), f"./{start_time}/checkpoints/epoch_{epoch}_valid_psnr_{valid_psnr:.2f}_train_psnr_{train_psnr:.2f}.pth")
 
     print (f"[INFO] finished training: {get_date_time_string()}")
     print (f"[INFO] finished training: {get_date_time_string()}", file=fd)
