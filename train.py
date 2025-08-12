@@ -173,8 +173,6 @@ if __name__ == "__main__":
         if epoch % n_img == 0 and epoch != 0:
             os.makedirs(f"./{start_time}/results/train_epoch_{epoch}/")
             for n in range(output.shape[0]):
-                # plt.imshow((output[n].detach().cpu().numpy() + 1.) / 2., cmap="gray")
-                # plt.savefig("./results/train_epoch_{}_n_{}.png".format(epoch, n))
                 output_img = (output[n].detach().cpu().numpy() + 1.) / 2. * 255
                 cv2.imwrite(f"./{start_time}/results/train_epoch_{epoch}/train_epoch_{epoch}_n_{n}.png", output_img)
     
@@ -233,8 +231,6 @@ if __name__ == "__main__":
         if epoch % n_img == 0 and epoch != 0:
             os.makedirs(f"./{start_time}/results/valid_epoch_{epoch}/")
             for n in range(output.shape[1]):
-                # plt.imshow((output[0, n, ...].detach().cpu().numpy() + 1.) / 2., cmap="gray")
-                # plt.savefig("./results/valid_epoch_{}_n_{}.png".format(epoch, n))
                 output_img = (output[0, n, ...].detach().cpu().numpy() + 1.) / 2. * 255
                 cv2.imwrite(f"./{start_time}/results/valid_epoch_{epoch}/valid_epoch_{epoch}_n_{n}.png", output_img)
     
